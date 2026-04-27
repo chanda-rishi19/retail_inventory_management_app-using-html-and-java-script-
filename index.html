@@ -1,0 +1,895 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --font: 'Segoe UI', system-ui, sans-serif;
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #222538;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #e8eaf0;
+    --text2: #8b90a8;
+    --text3: #555b78;
+    --accent: #6c7fff;
+    --accent2: #4f5ce0;
+    --green: #2ecc8a;
+    --amber: #f5a623;
+    --red: #ff5a5a;
+    --teal: #38c6c0;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; min-height: 600px; }
+  
+  .app { display: flex; height: 600px; overflow: hidden; }
+  
+  /* Sidebar */
+  .sidebar { width: 200px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-logo { padding: 16px 14px 12px; border-bottom: 1px solid var(--border); }
+  .logo-mark { display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; }
+  .logo-text { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .logo-sub { font-size: 10px; color: var(--text3); font-weight: 400; }
+  
+  .nav { padding: 8px; flex: 1; overflow-y: auto; }
+  .nav-section-label { font-size: 9px; font-weight: 600; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; padding: 10px 8px 4px; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text2); margin-bottom: 1px; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(108,127,255,0.15); color: var(--accent); font-weight: 500; }
+  .nav-icon { font-size: 14px; width: 16px; text-align: center; }
+  
+  .nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 20px; min-width: 18px; text-align: center; }
+  
+  .sidebar-footer { padding: 10px; border-top: 1px solid var(--border); }
+  .user-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius-sm); cursor: pointer; }
+  .user-row:hover { background: var(--bg3); }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; flex-shrink: 0; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-role { font-size: 10px; color: var(--text3); }
+  
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--bg2); flex-shrink: 0; }
+  .page-title { font-size: 15px; font-weight: 600; flex: 1; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  
+  .btn { padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--bg3); color: var(--text); font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.15s; white-space: nowrap; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .btn-danger { background: rgba(255,90,90,0.1); border-color: rgba(255,90,90,0.3); color: var(--red); }
+  .btn-danger:hover { background: rgba(255,90,90,0.2); }
+  
+  .content { flex: 1; overflow-y: auto; padding: 18px 20px; }
+  
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+  
+  /* KPI Row */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .kpi-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .kpi-value { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 5px; }
+  .kpi-accent { color: var(--green); }
+  .kpi-warn { color: var(--amber); }
+  .kpi-danger { color: var(--red); }
+  
+  /* Charts row */
+  .charts-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .chart-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .card-badge { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; }
+  .badge-live { background: rgba(46,204,138,0.15); color: var(--green); }
+  
+  /* Alerts */
+  .alerts-section { margin-bottom: 18px; }
+  .section-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .alert-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; border-left: 3px solid transparent; }
+  .alert-item.critical { border-left-color: var(--red); }
+  .alert-item.warning { border-left-color: var(--amber); }
+  .alert-item.info { border-left-color: var(--accent); }
+  .alert-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-red { background: var(--red); }
+  .dot-amber { background: var(--amber); }
+  .dot-blue { background: var(--accent); }
+  .alert-text { flex: 1; font-size: 12px; }
+  .alert-title { font-weight: 500; color: var(--text); }
+  .alert-desc { color: var(--text3); font-size: 11px; margin-top: 1px; }
+  .alert-time { font-size: 10px; color: var(--text3); }
+  
+  /* Table */
+  .table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-header { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .search-input { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 6px 10px; color: var(--text); font-size: 12px; width: 200px; outline: none; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text3); }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 16px; font-size: 12px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .product-name { font-weight: 500; color: var(--text); }
+  .sku { color: var(--text3); font-size: 10px; font-family: monospace; }
+  
+  .stock-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .stock-bar { height: 4px; border-radius: 2px; background: var(--bg3); flex: 1; overflow: hidden; min-width: 60px; }
+  .stock-fill { height: 100%; border-radius: 2px; }
+  .fill-green { background: var(--green); }
+  .fill-amber { background: var(--amber); }
+  .fill-red { background: var(--red); }
+  .stock-num { font-size: 11px; min-width: 32px; text-align: right; }
+  
+  .status-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; }
+  .pill-ok { background: rgba(46,204,138,0.1); color: var(--green); }
+  .pill-low { background: rgba(245,166,35,0.1); color: var(--amber); }
+  .pill-critical { background: rgba(255,90,90,0.1); color: var(--red); }
+  
+  .days-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 500; background: var(--bg3); color: var(--text2); }
+  .days-urgent { background: rgba(255,90,90,0.1); color: var(--red); }
+  .days-soon { background: rgba(245,166,35,0.1); color: var(--amber); }
+  
+  /* Form panel */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; font-weight: 500; color: var(--text2); }
+  .form-input, .form-select { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 7px 10px; color: var(--text); font-size: 13px; outline: none; width: 100%; font-family: var(--font); }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-input::placeholder { color: var(--text3); }
+  .form-select option { background: var(--bg2); }
+  .form-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .form-card-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  
+  /* Config panel */
+  .config-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .config-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+  .config-section { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .config-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .config-item:last-child { border-bottom: none; }
+  .config-key { font-size: 12px; color: var(--text2); }
+  .config-val { font-size: 12px; color: var(--accent); font-family: monospace; }
+  
+  /* Toggle */
+  .toggle { position: relative; width: 36px; height: 20px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--bg3); border-radius: 20px; cursor: pointer; border: 1px solid var(--border2); transition: 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px; background: var(--text3); border-radius: 50%; transition: 0.2s; }
+  input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+  input:checked + .toggle-slider:before { transform: translateX(16px); background: #fff; }
+  
+  /* Modal */
+  .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; display: none; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); width: 420px; max-width: 90%; padding: 20px; }
+  .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .modal-close { cursor: pointer; color: var(--text3); font-size: 18px; background: none; border: none; color: var(--text3); }
+  
+  /* Login */
+  .login-screen { position: absolute; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .login-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 32px; width: 340px; }
+  .login-logo { text-align: center; margin-bottom: 24px; }
+  .login-logo-icon { width: 48px; height: 48px; background: var(--accent); border-radius: 12px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #fff; }
+  .login-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+  .login-sub { font-size: 13px; color: var(--text3); text-align: center; margin-bottom: 22px; }
+  .login-form { display: flex; flex-direction: column; gap: 12px; }
+  .login-input { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-size: 14px; outline: none; width: 100%; font-family: var(--font); }
+  .login-input:focus { border-color: var(--accent); }
+  .login-input::placeholder { color: var(--text3); }
+  .login-btn { background: var(--accent); border: none; border-radius: var(--radius-sm); padding: 11px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; font-family: var(--font); margin-top: 4px; }
+  .login-btn:hover { background: var(--accent2); }
+  .login-divider { display: flex; align-items: center; gap: 10px; margin: 4px 0; color: var(--text3); font-size: 12px; }
+  .login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .oauth-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px; color: var(--text); font-size: 13px; cursor: pointer; font-family: var(--font); transition: border-color 0.15s; width: 100%; }
+  .oauth-btn:hover { border-color: var(--accent); }
+  .login-error { background: rgba(255,90,90,0.1); border: 1px solid rgba(255,90,90,0.3); border-radius: var(--radius-sm); padding: 8px 12px; color: var(--red); font-size: 12px; display: none; }
+  .login-error.visible { display: block; }
+
+  /* CSV drop */
+  .csv-drop { border: 2px dashed var(--border2); border-radius: var(--radius); padding: 30px; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+  .csv-drop:hover { border-color: var(--accent); }
+  .csv-drop-icon { font-size: 28px; margin-bottom: 8px; }
+  .csv-drop-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .csv-drop-sub { font-size: 11px; color: var(--text3); }
+
+  /* Toast */
+  .toast { position: absolute; bottom: 20px; right: 20px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); transform: translateY(60px); opacity: 0; transition: all 0.3s; z-index: 300; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 14px; }
+
+  /* Restock panel */
+  .restock-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; }
+  .restock-product { flex: 1; }
+  .restock-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .restock-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .restock-timeline { width: 160px; }
+  .timeline-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .timeline-bar { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .timeline-fill { height: 100%; border-radius: 3px; }
+  .restock-action { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .urgency-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; }
+  .tag-now { background: rgba(255,90,90,0.15); color: var(--red); }
+  .tag-soon { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .tag-ok { background: rgba(46,204,138,0.15); color: var(--green); }
+
+  .empty-state { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
+  
+  .lang-select { background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 5px 8px; color: var(--text); font-size: 11px; cursor: pointer; outline: none; }
+</style>
+</head>
+<body style="position:relative;">
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">IV</div>
+    </div>
+    <div class="login-title" data-i18n="loginTitle">InvenTrack</div>
+    <div class="login-sub" data-i18n="loginSub">Retail Inventory Management</div>
+    <div class="login-form">
+      <div class="login-error" id="loginError" data-i18n="loginError">Invalid credentials. Try admin@store.com / admin123</div>
+      <input class="login-input" id="loginEmail" type="email" placeholder="Email address" value="admin@store.com">
+      <input class="login-input" id="loginPass" type="password" placeholder="Password" value="admin123">
+      <button class="login-btn" onclick="doLogin()" data-i18n="signIn">Sign In</button>
+      <div class="login-divider" data-i18n="orContinue">or continue with</div>
+      <button class="oauth-btn" onclick="doOAuth()">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        <span data-i18n="googleSignIn">Sign in with Google</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div class="app" id="mainApp" style="display:none; position:relative;">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">IV</div>
+        <div>
+          <div class="logo-text">InvenTrack</div>
+          <div class="logo-sub">v2.4 · Config-Driven</div>
+        </div>
+      </div>
+    </div>
+    <div class="nav">
+      <div class="nav-section-label" data-i18n="navMain">Main</div>
+      <button class="nav-item active" onclick="showPanel('dashboard', this)">
+        <span class="nav-icon">⊞</span><span data-i18n="navDashboard">Dashboard</span>
+      </button>
+      <button class="nav-item" onclick="showPanel('inventory', this)">
+        <span class="nav-icon">▤</span><span data-i18n="navInventory">Inventory</span>
+      </button>
+      <button class="nav-item" onclick="showPanel('alerts', this)">
+        <span class="nav-icon">◎</span><span data-i18n="navAlerts">Alerts</span>
+        <span class="nav-badge" id="alertBadge">3</span>
+      </button>
+      <button class="nav-item" onclick="showPanel('restock', this)">
+        <span class="nav-icon">↻</span><span data-i18n="navRestock">Restock</span>
+      </button>
+      <div class="nav-section-label" data-i18n="navManage">Manage</div>
+      <button class="nav-item" onclick="showPanel('addproduct', this)">
+        <span class="nav-icon">＋</span><span data-i18n="navAdd">Add Product</span>
+      </button>
+      <button class="nav-item" onclick="showPanel('import', this)">
+        <span class="nav-icon">⇡</span><span data-i18n="navImport">CSV Import</span>
+      </button>
+      <div class="nav-section-label" data-i18n="navSystem">System</div>
+      <button class="nav-item" onclick="showPanel('config', this)">
+        <span class="nav-icon">⚙</span><span data-i18n="navConfig">Config</span>
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="avatar" id="userAvatar">AD</div>
+        <div class="user-info">
+          <div class="user-name" id="userName">Admin User</div>
+          <div class="user-role" data-i18n="roleAdmin">Administrator</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle" data-i18n="pageDashboard">Dashboard</div>
+      <div class="topbar-actions">
+        <select class="lang-select" onchange="setLang(this.value)">
+          <option value="en">EN</option>
+          <option value="hi">HI</option>
+          <option value="es">ES</option>
+          <option value="fr">FR</option>
+        </select>
+        <button class="btn" onclick="exportData()">↓ Export</button>
+        <button class="btn btn-danger" onclick="doLogout()">Sign Out</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- Dashboard Panel -->
+      <div class="panel active" id="panel-dashboard">
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-label" data-i18n="kpiTotal">Total SKUs</div>
+            <div class="kpi-value" id="kpi-skus">24</div>
+            <div class="kpi-sub kpi-accent">▲ 3 this month</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label" data-i18n="kpiLow">Low Stock</div>
+            <div class="kpi-value kpi-warn" id="kpi-low">6</div>
+            <div class="kpi-sub">Needs attention</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label" data-i18n="kpiCritical">Critical</div>
+            <div class="kpi-value kpi-danger" id="kpi-critical">2</div>
+            <div class="kpi-sub">Reorder now</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label" data-i18n="kpiValue">Stock Value</div>
+            <div class="kpi-value" id="kpi-value">$84.2K</div>
+            <div class="kpi-sub kpi-accent">▲ 12% vs last week</div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="card-title"><span data-i18n="chartStock">Stock Levels by Category</span><span class="card-badge badge-live">Live</span></div>
+            <div style="position:relative;height:180px;"><canvas id="stockChart" role="img" aria-label="Bar chart showing stock levels by category">Stock by category</canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="card-title" data-i18n="chartTrend">Inventory Trend</div>
+            <div style="position:relative;height:180px;"><canvas id="trendChart" role="img" aria-label="Line chart showing inventory trend over time">Inventory trend</canvas></div>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <span>◎</span><span data-i18n="activeAlerts">Active Alerts</span>
+        </div>
+        <div class="alert-item critical">
+          <div class="alert-dot dot-red"></div>
+          <div class="alert-text">
+            <div class="alert-title">USB-C Cables — 3 units remaining</div>
+            <div class="alert-desc">Below minimum threshold (15). Restock immediately.</div>
+          </div>
+          <div class="alert-time">2m ago</div>
+        </div>
+        <div class="alert-item warning">
+          <div class="alert-dot dot-amber"></div>
+          <div class="alert-text">
+            <div class="alert-title">Wireless Mouse — 8 units remaining</div>
+            <div class="alert-desc">5 days until stockout at current velocity.</div>
+          </div>
+          <div class="alert-time">18m ago</div>
+        </div>
+        <div class="alert-item info">
+          <div class="alert-dot dot-blue"></div>
+          <div class="alert-text">
+            <div class="alert-title">Laptop Stand — restock arriving tomorrow</div>
+            <div class="alert-desc">PO #4421 confirmed. 50 units inbound.</div>
+          </div>
+          <div class="alert-time">1h ago</div>
+        </div>
+      </div>
+
+      <!-- Inventory Panel -->
+      <div class="panel" id="panel-inventory">
+        <div class="table-wrap">
+          <div class="table-header">
+            <input class="search-input" id="searchInput" placeholder="Search products..." oninput="filterTable()">
+            <div style="display:flex;gap:8px;">
+              <select class="lang-select" id="catFilter" onchange="filterTable()">
+                <option value="">All Categories</option>
+                <option value="Electronics">Electronics</option>
+                <option value="Accessories">Accessories</option>
+                <option value="Peripherals">Peripherals</option>
+              </select>
+              <button class="btn btn-primary" onclick="showPanel('addproduct', document.querySelector('.nav-item:nth-child(8)'))">+ Add</button>
+            </div>
+          </div>
+          <table id="inventoryTable">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Stock Level</th>
+                <th>Status</th>
+                <th>Restock ETA</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Alerts Panel -->
+      <div class="panel" id="panel-alerts">
+        <div class="section-title">Critical</div>
+        <div class="alert-item critical"><div class="alert-dot dot-red"></div><div class="alert-text"><div class="alert-title">USB-C Cables — 3 units left</div><div class="alert-desc">Min threshold: 15. Velocity: 4/day. Stockout in ~18hrs.</div></div><button class="btn" style="font-size:11px;" onclick="showToast('Restock order placed')">Order Now</button></div>
+        <div class="alert-item critical"><div class="alert-dot dot-red"></div><div class="alert-text"><div class="alert-title">HDMI Adapters — 0 units</div><div class="alert-desc">Out of stock. 12 pending orders affected.</div></div><button class="btn btn-primary" style="font-size:11px;" onclick="showToast('Emergency restock initiated')">Emergency Restock</button></div>
+        <div class="section-title" style="margin-top:14px;">Warning</div>
+        <div class="alert-item warning"><div class="alert-dot dot-amber"></div><div class="alert-text"><div class="alert-title">Wireless Mouse — 8 units</div><div class="alert-desc">5 days until stockout. Reorder lead time: 7 days.</div></div><button class="btn" style="font-size:11px;" onclick="showToast('Restock scheduled')">Schedule Restock</button></div>
+        <div class="alert-item warning"><div class="alert-dot dot-amber"></div><div class="alert-text"><div class="alert-title">Mechanical Keyboard — 11 units</div><div class="alert-desc">Below buffer stock. High demand season approaching.</div></div><button class="btn" style="font-size:11px;" onclick="showToast('Noted')">Acknowledge</button></div>
+        <div class="section-title" style="margin-top:14px;">Informational</div>
+        <div class="alert-item info"><div class="alert-dot dot-blue"></div><div class="alert-text"><div class="alert-title">Laptop Stand — PO #4421 arriving tomorrow</div><div class="alert-desc">50 units inbound. Auto-update on delivery confirmation.</div></div></div>
+      </div>
+
+      <!-- Restock Predictions Panel -->
+      <div class="panel" id="panel-restock">
+        <div class="section-title">AI Restock Predictions</div>
+        <div id="restockList"></div>
+      </div>
+
+      <!-- Add Product Panel -->
+      <div class="panel" id="panel-addproduct">
+        <div class="form-card">
+          <div class="form-card-title">Product Information</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Product Name *</label>
+              <input class="form-input" id="f-name" placeholder="e.g. USB-C Hub Pro">
+            </div>
+            <div class="form-group">
+              <label class="form-label">SKU *</label>
+              <input class="form-input" id="f-sku" placeholder="e.g. HUB-USBC-001">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select" id="f-cat">
+                <option>Electronics</option>
+                <option>Accessories</option>
+                <option>Peripherals</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Initial Stock</label>
+              <input class="form-input" id="f-stock" type="number" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Minimum Threshold</label>
+              <input class="form-input" id="f-min" type="number" placeholder="10">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Capacity</label>
+              <input class="form-input" id="f-max" type="number" placeholder="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Unit Price ($)</label>
+              <input class="form-input" id="f-price" type="number" placeholder="0.00" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Restock Lead Time (days)</label>
+              <input class="form-input" id="f-lead" type="number" placeholder="7">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Description (optional)</label>
+              <input class="form-input" id="f-desc" placeholder="Brief product description">
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="addProduct()">Save Product</button>
+            <button class="btn" onclick="clearForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CSV Import Panel -->
+      <div class="panel" id="panel-import">
+        <div class="form-card">
+          <div class="form-card-title">CSV Import</div>
+          <div class="csv-drop" onclick="simulateImport()">
+            <div class="csv-drop-icon">⇡</div>
+            <div class="csv-drop-title">Click to import CSV file</div>
+            <div class="csv-drop-sub">Supports: name, sku, category, stock, min_threshold, price</div>
+          </div>
+          <div id="importPreview" style="margin-top:14px;display:none;">
+            <div class="section-title">Preview (5 rows)</div>
+            <table style="width:100%;font-size:11px;margin-top:6px;">
+              <thead><tr><th>Name</th><th>SKU</th><th>Category</th><th>Stock</th><th>Price</th></tr></thead>
+              <tbody id="importBody"></tbody>
+            </table>
+            <div style="margin-top:12px;display:flex;gap:8px;">
+              <button class="btn btn-primary" onclick="confirmImport()">Import 5 Products</button>
+              <button class="btn" onclick="document.getElementById('importPreview').style.display='none'">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config Panel -->
+      <div class="panel" id="panel-config">
+        <div class="config-row">
+          <div>
+            <div class="config-card">
+              <div class="config-section">App Configuration</div>
+              <div class="config-item"><span class="config-key">app.name</span><span class="config-val">"InvenTrack"</span></div>
+              <div class="config-item"><span class="config-key">app.version</span><span class="config-val">"2.4.0"</span></div>
+              <div class="config-item"><span class="config-key">app.locale</span><span class="config-val" id="cfg-locale">"en-US"</span></div>
+              <div class="config-item"><span class="config-key">db.type</span><span class="config-val">"postgresql"</span></div>
+              <div class="config-item"><span class="config-key">auth.methods</span><span class="config-val">["email","google"]</span></div>
+            </div>
+            <div class="config-card">
+              <div class="config-section">Alert Thresholds</div>
+              <div class="config-item"><span class="config-key">alert.critical_pct</span><span class="config-val">10%</span></div>
+              <div class="config-item"><span class="config-key">alert.warning_pct</span><span class="config-val">25%</span></div>
+              <div class="config-item"><span class="config-key">alert.check_interval</span><span class="config-val">"5min"</span></div>
+              <div class="config-item"><span class="config-key">notif.email</span><span class="config-val">true</span></div>
+            </div>
+          </div>
+          <div>
+            <div class="config-card">
+              <div class="config-section">Feature Flags</div>
+              <div class="config-item"><span class="config-key">feature.csv_import</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+              <div class="config-item"><span class="config-key">feature.ai_predictions</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+              <div class="config-item"><span class="config-key">feature.email_notifs</span><label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div>
+              <div class="config-item"><span class="config-key">feature.pwa_mode</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+              <div class="config-item"><span class="config-key">feature.multi_lang</span><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+            </div>
+            <div class="config-card">
+              <div class="config-section">UI Component Registry</div>
+              <div class="config-item"><span class="config-key">ui.StockTable</span><span class="config-val" style="color:var(--green);">loaded</span></div>
+              <div class="config-item"><span class="config-key">ui.AlertPanel</span><span class="config-val" style="color:var(--green);">loaded</span></div>
+              <div class="config-item"><span class="config-key">ui.RestockEngine</span><span class="config-val" style="color:var(--green);">loaded</span></div>
+              <div class="config-item"><span class="config-key">ui.CSVImporter</span><span class="config-val" style="color:var(--green);">loaded</span></div>
+              <div class="config-item"><span class="config-key">ui.ChartDashboard</span><span class="config-val" style="color:var(--green);">loaded</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-title">
+        <span id="modalTitle">Product Details</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span class="toast-icon">✓</span>
+    <span id="toastMsg">Action completed</span>
+  </div>
+</div>
+
+<script>
+const APP_CONFIG = {
+  name: "InvenTrack",
+  version: "2.4.0",
+  auth: { methods: ["email", "google"], users: [{ email: "admin@store.com", password: "admin123", name: "Admin User", role: "admin" }] },
+  thresholds: { critical: 0.10, warning: 0.25 },
+  features: { csv_import: true, ai_predictions: true, multi_lang: true },
+  components: ["StockTable","AlertPanel","RestockEngine","CSVImporter","ChartDashboard"]
+};
+
+const I18N = {
+  en: { loginTitle:"InvenTrack", loginSub:"Retail Inventory Management", signIn:"Sign In", orContinue:"or continue with", googleSignIn:"Sign in with Google", loginError:"Invalid credentials. Try admin@store.com / admin123", navMain:"Main", navDashboard:"Dashboard", navInventory:"Inventory", navAlerts:"Alerts", navRestock:"Restock", navManage:"Manage", navAdd:"Add Product", navImport:"CSV Import", navSystem:"System", navConfig:"Config", roleAdmin:"Administrator", pageDashboard:"Dashboard", kpiTotal:"Total SKUs", kpiLow:"Low Stock", kpiCritical:"Critical", kpiValue:"Stock Value", chartStock:"Stock Levels by Category", chartTrend:"Inventory Trend", activeAlerts:"Active Alerts" },
+  hi: { loginTitle:"इनवेनट्रैक", loginSub:"रिटेल इन्वेंट्री प्रबंधन", signIn:"साइन इन करें", orContinue:"या इसके साथ जारी रखें", googleSignIn:"Google से साइन इन करें", loginError:"गलत क्रेडेंशियल", navMain:"मुख्य", navDashboard:"डैशबोर्ड", navInventory:"इन्वेंट्री", navAlerts:"अलर्ट", navRestock:"पुनर्भंडार", navManage:"प्रबंधन", navAdd:"उत्पाद जोड़ें", navImport:"CSV आयात", navSystem:"सिस्टम", navConfig:"कॉन्फ़िग", roleAdmin:"व्यवस्थापक", pageDashboard:"डैशबोर्ड", kpiTotal:"कुल SKUs", kpiLow:"कम स्टॉक", kpiCritical:"गंभीर", kpiValue:"स्टॉक मूल्य", chartStock:"श्रेणी के अनुसार स्टॉक", chartTrend:"इन्वेंट्री ट्रेंड", activeAlerts:"सक्रिय अलर्ट" },
+  es: { loginTitle:"InvenTrack", loginSub:"Gestión de Inventario Minorista", signIn:"Iniciar Sesión", orContinue:"o continuar con", googleSignIn:"Iniciar con Google", loginError:"Credenciales incorrectas", navMain:"Principal", navDashboard:"Panel", navInventory:"Inventario", navAlerts:"Alertas", navRestock:"Reabastecimiento", navManage:"Gestionar", navAdd:"Agregar Producto", navImport:"Importar CSV", navSystem:"Sistema", navConfig:"Configuración", roleAdmin:"Administrador", pageDashboard:"Panel de Control", kpiTotal:"Total SKUs", kpiLow:"Stock Bajo", kpiCritical:"Crítico", kpiValue:"Valor del Stock", chartStock:"Niveles por Categoría", chartTrend:"Tendencia de Inventario", activeAlerts:"Alertas Activas" },
+  fr: { loginTitle:"InvenTrack", loginSub:"Gestion des Stocks", signIn:"Se Connecter", orContinue:"ou continuer avec", googleSignIn:"Se connecter avec Google", loginError:"Identifiants incorrects", navMain:"Principal", navDashboard:"Tableau de bord", navInventory:"Inventaire", navAlerts:"Alertes", navRestock:"Réapprovisionnement", navManage:"Gérer", navAdd:"Ajouter Produit", navImport:"Importer CSV", navSystem:"Système", navConfig:"Configuration", roleAdmin:"Administrateur", pageDashboard:"Tableau de Bord", kpiTotal:"Total SKUs", kpiLow:"Stock Faible", kpiCritical:"Critique", kpiValue:"Valeur du Stock", chartStock:"Niveaux par Catégorie", chartTrend:"Tendance Inventaire", activeAlerts:"Alertes Actives" }
+};
+
+let currentLang = 'en';
+let products = [
+  { id:1, name:"USB-C Cables", sku:"CBL-USBC-001", category:"Electronics", stock:3, min:15, max:100, price:12.99, lead:3, velocity:4 },
+  { id:2, name:"Wireless Mouse", sku:"PRP-MSE-002", category:"Peripherals", stock:8, min:20, max:80, price:29.99, lead:7, velocity:1.6 },
+  { id:3, name:"Mechanical Keyboard", sku:"PRP-KBD-003", category:"Peripherals", stock:11, min:10, max:60, price:89.99, lead:10, velocity:0.8 },
+  { id:4, name:"HDMI Adapter", sku:"CBL-HDMI-004", category:"Electronics", stock:0, min:10, max:50, price:18.99, lead:5, velocity:2 },
+  { id:5, name:"Laptop Stand", sku:"ACC-STD-005", category:"Accessories", stock:34, min:15, max:80, price:45.00, lead:7, velocity:1.2 },
+  { id:6, name:"4K Webcam", sku:"CAM-4K-006", category:"Electronics", stock:22, min:8, max:40, price:119.99, lead:14, velocity:0.6 },
+  { id:7, name:"USB Hub 7-port", sku:"HUB-USB7-007", category:"Electronics", stock:47, min:10, max:60, price:34.99, lead:6, velocity:1.1 },
+  { id:8, name:"Monitor Arm", sku:"ACC-ARM-008", category:"Accessories", stock:18, min:8, max:30, price:62.00, lead:12, velocity:0.5 },
+];
+
+let currentUser = null;
+
+function setLang(lang) {
+  currentLang = lang;
+  const t = I18N[lang] || I18N.en;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (t[key]) el.textContent = t[key];
+  });
+  document.getElementById('cfg-locale').textContent = '"' + lang + '-' + lang.toUpperCase() + '"';
+}
+
+function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const pass = document.getElementById('loginPass').value;
+  const user = APP_CONFIG.auth.users.find(u => u.email === email && u.password === pass);
+  const err = document.getElementById('loginError');
+  if (!user) { err.classList.add('visible'); return; }
+  err.classList.remove('visible');
+  currentUser = user;
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userAvatar').textContent = user.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'flex';
+  initCharts();
+  renderInventory();
+  renderRestock();
+}
+
+function doOAuth() {
+  document.getElementById('loginEmail').value = 'admin@store.com';
+  document.getElementById('loginPass').value = 'admin123';
+  showToastGlobal('Google OAuth simulated — using demo account');
+  setTimeout(doLogin, 800);
+}
+
+function doLogout() {
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  currentUser = null;
+}
+
+function showPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  const titles = { dashboard:'Dashboard', inventory:'Inventory', alerts:'Alerts', restock:'Restock Predictions', addproduct:'Add Product', import:'CSV Import', config:'System Config' };
+  document.getElementById('pageTitle').textContent = titles[id] || id;
+}
+
+function getStatus(p) {
+  const pct = p.stock / p.max;
+  if (p.stock === 0) return 'critical';
+  if (pct <= APP_CONFIG.thresholds.critical || p.stock <= p.min) return 'critical';
+  if (pct <= APP_CONFIG.thresholds.warning) return 'low';
+  return 'ok';
+}
+
+function getDaysLeft(p) {
+  if (p.velocity === 0) return 999;
+  return Math.round(p.stock / p.velocity);
+}
+
+function renderInventory(filter = '') {
+  const catFilter = document.getElementById('catFilter')?.value || '';
+  const body = document.getElementById('inventoryBody');
+  if (!body) return;
+  body.innerHTML = '';
+  const filtered = products.filter(p => {
+    const matchSearch = !filter || p.name.toLowerCase().includes(filter.toLowerCase()) || p.sku.toLowerCase().includes(filter.toLowerCase());
+    const matchCat = !catFilter || p.category === catFilter;
+    return matchSearch && matchCat;
+  });
+  filtered.forEach(p => {
+    const pct = Math.min(100, Math.round((p.stock / p.max) * 100));
+    const status = getStatus(p);
+    const days = getDaysLeft(p);
+    const fillClass = status === 'critical' ? 'fill-red' : status === 'low' ? 'fill-amber' : 'fill-green';
+    const pillClass = status === 'critical' ? 'pill-critical' : status === 'low' ? 'pill-low' : 'pill-ok';
+    const pillText = status === 'critical' ? 'Critical' : status === 'low' ? 'Low' : 'OK';
+    const daysClass = days < 3 ? 'days-urgent' : days < 7 ? 'days-soon' : '';
+    const daysText = days === 999 ? 'N/A' : days + 'd';
+    body.innerHTML += `<tr>
+      <td><div class="product-name">${p.name}</div><div class="sku">${p.sku}</div></td>
+      <td>${p.category}</td>
+      <td><div class="stock-bar-wrap"><div class="stock-bar"><div class="stock-fill ${fillClass}" style="width:${pct}%"></div></div><span class="stock-num" style="color:${status==='critical'?'var(--red)':status==='low'?'var(--amber)':'var(--text2)'}">${p.stock}</span></div></td>
+      <td><span class="status-pill ${pillClass}">${pillText}</span></td>
+      <td><span class="days-badge ${daysClass}">${daysText}</span></td>
+      <td><button class="btn" style="font-size:11px;padding:4px 8px;" onclick="openProduct(${p.id})">View</button></td>
+    </tr>`;
+  });
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="6"><div class="empty-state">No products found.</div></td></tr>';
+  }
+}
+
+function filterTable() {
+  const q = document.getElementById('searchInput')?.value || '';
+  renderInventory(q);
+}
+
+function renderRestock() {
+  const list = document.getElementById('restockList');
+  if (!list) return;
+  const sorted = [...products].sort((a,b) => getDaysLeft(a) - getDaysLeft(b));
+  list.innerHTML = sorted.map(p => {
+    const days = getDaysLeft(p);
+    const pct = Math.min(100, Math.round((p.stock/p.max)*100));
+    const urgency = days < p.lead ? 'now' : days < p.lead * 2 ? 'soon' : 'ok';
+    const tagClass = urgency === 'now' ? 'tag-now' : urgency === 'soon' ? 'tag-soon' : 'tag-ok';
+    const tagText = urgency === 'now' ? 'Order Now' : urgency === 'soon' ? 'Order Soon' : 'Adequate';
+    const fillColor = urgency === 'now' ? 'var(--red)' : urgency === 'soon' ? 'var(--amber)' : 'var(--green)';
+    const restockDate = days === 999 ? 'N/A' : `~${days}d`;
+    return `<div class="restock-card">
+      <div class="restock-product">
+        <div class="restock-name">${p.name}</div>
+        <div class="restock-meta">${p.stock} units · ${p.velocity}/day · Lead: ${p.lead}d</div>
+      </div>
+      <div class="restock-timeline">
+        <div class="timeline-label"><span>Stock</span><span>${pct}%</span></div>
+        <div class="timeline-bar"><div class="timeline-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+        <div class="timeline-label" style="margin-top:4px;"><span>Stockout</span><span>${restockDate}</span></div>
+      </div>
+      <div class="restock-action">
+        <span class="urgency-tag ${tagClass}">${tagText}</span>
+        <button class="btn" style="font-size:11px;padding:4px 8px;" onclick="showToast('Restock initiated for ${p.name}')">Restock</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addProduct() {
+  const name = document.getElementById('f-name').value.trim();
+  const sku = document.getElementById('f-sku').value.trim();
+  if (!name || !sku) { showToast('Name and SKU are required', true); return; }
+  const newProduct = {
+    id: Date.now(),
+    name, sku,
+    category: document.getElementById('f-cat').value,
+    stock: parseInt(document.getElementById('f-stock').value) || 0,
+    min: parseInt(document.getElementById('f-min').value) || 10,
+    max: parseInt(document.getElementById('f-max').value) || 100,
+    price: parseFloat(document.getElementById('f-price').value) || 0,
+    lead: parseInt(document.getElementById('f-lead').value) || 7,
+    velocity: 1
+  };
+  products.push(newProduct);
+  document.getElementById('kpi-skus').textContent = products.length;
+  showToast('Product added: ' + name);
+  clearForm();
+  renderRestock();
+}
+
+function clearForm() {
+  ['f-name','f-sku','f-stock','f-min','f-max','f-price','f-lead','f-desc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
+function openProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const status = getStatus(p);
+  const pillClass = status === 'critical' ? 'pill-critical' : status === 'low' ? 'pill-low' : 'pill-ok';
+  document.getElementById('modalTitle').textContent = p.name;
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;margin-bottom:14px;">
+      <div><div style="color:var(--text3);margin-bottom:2px;">SKU</div><div style="font-family:monospace;color:var(--accent)">${p.sku}</div></div>
+      <div><div style="color:var(--text3);margin-bottom:2px;">Category</div><div>${p.category}</div></div>
+      <div><div style="color:var(--text3);margin-bottom:2px;">Current Stock</div><div style="font-size:20px;font-weight:600;">${p.stock} <span class="status-pill ${pillClass}" style="font-size:10px;">${status}</span></div></div>
+      <div><div style="color:var(--text3);margin-bottom:2px;">Unit Price</div><div>$${p.price.toFixed(2)}</div></div>
+      <div><div style="color:var(--text3);margin-bottom:2px;">Min / Max</div><div>${p.min} / ${p.max}</div></div>
+      <div><div style="color:var(--text3);margin-bottom:2px;">Lead Time</div><div>${p.lead} days</div></div>
+      <div><div style="color:var(--text3);margin-bottom:2px;">Daily Velocity</div><div>${p.velocity} units/day</div></div>
+      <div><div style="color:var(--text3);margin-bottom:2px;">Days Remaining</div><div>${getDaysLeft(p) === 999 ? 'N/A' : getDaysLeft(p) + ' days'}</div></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="closeModal();showToast('Restock order placed for ${p.name}')">Order Restock</button>
+      <button class="btn btn-danger" onclick="deleteProduct(${p.id})">Delete</button>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+
+function deleteProduct(id) {
+  products = products.filter(p => p.id !== id);
+  renderInventory();
+  renderRestock();
+  closeModal();
+  showToast('Product deleted');
+  document.getElementById('kpi-skus').textContent = products.length;
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function simulateImport() {
+  const mockRows = [
+    ['USB Extension Cable','CBL-EXT-101','Electronics',45,8.99],
+    ['Ergonomic Mouse Pad','ACC-PAD-102','Accessories',62,15.99],
+    ['Bluetooth Speaker','AUD-SPK-103','Electronics',12,49.99],
+    ['Screen Cleaner Kit','ACC-CLN-104','Accessories',90,9.99],
+    ['Type-C Dock','HUB-DOC-105','Electronics',7,79.99],
+  ];
+  const body = document.getElementById('importBody');
+  body.innerHTML = mockRows.map(r => `<tr><td style="color:var(--text)">${r[0]}</td><td style="font-family:monospace;color:var(--accent)">${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>$${r[4]}</td></tr>`).join('');
+  document.getElementById('importPreview').style.display = 'block';
+}
+
+function confirmImport() {
+  const mockImport = [
+    { id:Date.now()+1, name:"USB Extension Cable", sku:"CBL-EXT-101", category:"Electronics", stock:45, min:10, max:80, price:8.99, lead:5, velocity:1 },
+    { id:Date.now()+2, name:"Ergonomic Mouse Pad", sku:"ACC-PAD-102", category:"Accessories", stock:62, min:15, max:100, price:15.99, lead:7, velocity:0.8 },
+  ];
+  products.push(...mockImport);
+  document.getElementById('importPreview').style.display = 'none';
+  document.getElementById('kpi-skus').textContent = products.length;
+  showToast('5 products imported successfully');
+  renderInventory();
+  renderRestock();
+}
+
+function exportData() {
+  const csv = ['Name,SKU,Category,Stock,Min,Price', ...products.map(p => `${p.name},${p.sku},${p.category},${p.stock},${p.min},$${p.price}`)].join('\n');
+  showToast('CSV exported (' + products.length + ' rows)');
+}
+
+let toastTimer;
+function showToast(msg, isError) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  toast.querySelector('.toast-icon').textContent = isError ? '!' : '✓';
+  toast.style.borderColor = isError ? 'rgba(255,90,90,0.4)' : 'var(--border2)';
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function showToastGlobal(msg) { showToast(msg); }
+
+function initCharts() {
+  const cats = ['Electronics','Peripherals','Accessories'];
+  const catData = cats.map(c => products.filter(p=>p.category===c).reduce((s,p)=>s+p.stock,0));
+  new Chart(document.getElementById('stockChart'), {
+    type:'bar',
+    data: {
+      labels: cats,
+      datasets: [{
+        label:'Units',
+        data: catData,
+        backgroundColor: ['rgba(108,127,255,0.7)','rgba(56,198,192,0.7)','rgba(245,166,35,0.7)'],
+        borderColor: ['rgba(108,127,255,1)','rgba(56,198,192,1)','rgba(245,166,35,1)'],
+        borderWidth: 1,
+        borderRadius: 5
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{ticks:{color:'#8b90a8',font:{size:11}},grid:{color:'rgba(255,255,255,0.05)'}}, y:{ticks:{color:'#8b90a8',font:{size:11}},grid:{color:'rgba(255,255,255,0.05)'}} }
+    }
+  });
+  new Chart(document.getElementById('trendChart'), {
+    type:'line',
+    data: {
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[{
+        label:'Total Stock',
+        data:[312,298,285,270,258,243,230],
+        borderColor:'rgba(108,127,255,0.9)',
+        backgroundColor:'rgba(108,127,255,0.1)',
+        fill:true,
+        tension:0.4,
+        borderWidth:2,
+        pointRadius:3,
+        pointBackgroundColor:'rgba(108,127,255,1)'
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#8b90a8',font:{size:11}},grid:{color:'rgba(255,255,255,0.05)'}},
+        y:{ticks:{color:'#8b90a8',font:{size:11}},grid:{color:'rgba(255,255,255,0.05)'}}
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
